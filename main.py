@@ -1,16 +1,18 @@
 from fastapi import FastAPI, Body, Depends
-from app.model import PostSchema, UserSchema, UserLoginSchema
+from app.model import (
+    Todo_Table,
+    UserSchema,
+    UserLoginSchema,
+    Users,
+    TodoSchema,
+    Creating_table,
+)
 from app.auth.jwt_handler import signJWT
 from app.auth.jwt_bearer import JWTBearer
+from app.database import Session
 
-posts = [
-    {"id": 1, "title": "First Post", "content": "This is my first post"},
-    {"id": 2, "title": "Second Post", "content": "This is my second post"},
-    {"id": 3, "title": "Third Post", "content": "This is my third post"},
-]
-
-users = []
 app = FastAPI()
+Creating_table()
 
 
 # 1 Get post for testing
@@ -21,41 +23,69 @@ def test():
 
 # 2 Get posts
 @app.get("/post", tags=["posts"])
-def getPost():
-    return {"data": posts}
-
-
-# 3 Get post by id
-@app.get("/post/{id}", tags=["posts"])
-def getPostById(id: int):
-    if id > len(posts):
-        return {"message": f"Post with id={id} not found"}
-    else:
-        return {"data": "Invalid Id"}
-    for post in posts:
-        if post["id"] == id:
-            return {"data": post}
+async def read_todos():
+    with Session() as session:
+        todos = session.query(Todo_Table).all()
+    return todos
 
 
 # 4 Post a blog post (handler for creating a post)
 @app.post("/post", dependencies=[Depends(JWTBearer())], tags=["posts"])
-def add_post(post_added: PostSchema):
-    post_added.id = len(posts) + 1
-    posts.append(post_added.dict())
-    return {"info": "post added"}
+def add_post(todo: TodoSchema):
+    with Session() as session:
+        todo = Todo_Table(task=todo.task, status=todo.status)
+        session.add(todo)
+        session.commit()
+
+    return {"message": "Todo added to dataabse"}
 
 
-# 5 User Sign (Creating a new user)
+# users = []
+
+
+# 5 User Signup (Creating a new user)
+# @app.post("/user/signup", tags=["user"])
+# def user_signup(user: UserSchema):
+#     with Session() as session:
+#         user = Users(fullname=user.fullname, email=user.email, password=user.password)
+
+#         session.add(user)
+#         session.commit()
+
+#     return signJWT(user.email)
+
+
 @app.post("/user/signup", tags=["user"])
-def sign_user(user_added: UserSchema = Body(default=None)):
-    users.append(user_added.dict())
-    return signJWT(user_added.email)
+def user_signup(user: UserSchema):
+    with Session() as session:
+        existing_user = session.query(Users).filter(Users.email == user.email).first()
+
+        # If a user with the given email does not exist, create a new one
+        if existing_user is None:
+            new_user = Users(
+                fullname=user.fullname, email=user.email, password=user.password
+            )
+            session.add(new_user)
+            session.commit()
+            return signJWT(new_user.email)
+        else:
+            return {"error": "A user with this email already exists."}
+
+
+# def sign_user(user_added: UserSchema = Body(default=None)):
+#     users.append(user_added.dict())
+#     return signJWT(user_added.email)
 
 
 # function check the user if exits
 def check_user(data: UserLoginSchema):
-    for user in users:
-        if user["email"] == data.email and user["password"] == data.password:
+    with Session() as session:
+        user = (
+            session.query(Users)
+            .filter(Users.email == data.email, Users.password == data.password)
+            .first()
+        )
+        if user:
             return True
     return False
 

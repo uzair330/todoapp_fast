@@ -4,3 +4,4 @@ uvicorn
 PyJWT
 python-decouple
 pydantic[email]
+python-dotenv

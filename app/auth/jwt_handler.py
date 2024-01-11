@@ -1,11 +1,18 @@
 # This file is responsible for signing, encoding, decoding, and returning JWTs.
 import time
 import jwt
-from decouple import config
+from dotenv import load_dotenv, find_dotenv
+
+# from decouple import config
+
+import os
+
+load_dotenv(find_dotenv())
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 
-JWT_SECRET = config("SECRET_TOKEN")
-JWT_ALGORITHM = config("ALGORITHM")
+JWT_SECRET = os.getenv("SECRET_TOKEN")
+JWT_ALGORITHM = os.getenv("ALGORITHM")
 
 
 # Function return generated token jwt
