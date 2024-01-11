@@ -1,8 +1,8 @@
 from pydantic import BaseModel, Field, EmailStr
 
 
-from sqlalchemy.orm import declarative_base, Mapped, column_property
-from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import declarative_base, Mapped, column_property, relationship
+from sqlalchemy import Column, Integer, String, ForeignKey
 from app.database import Session, engine
 
 Base = declarative_base()
